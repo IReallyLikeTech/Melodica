@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useMusicStore } from '../store';
-import { Music, Disc, User, Play, MoreVertical } from 'lucide-react';
+import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { pickMusic, scanFiles } from '../services/musicScanner';
 
 export const LibraryView: React.FC = () => {
   const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists'>('songs');
-  const { songs, albums, artists, playSong } = useMusicStore();
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const { songs, albums, artists, playSong, setSongs } = useMusicStore();
 
   const segments = [
     { id: 'songs', label: 'Songs', icon: Music },
@@ -14,10 +17,62 @@ export const LibraryView: React.FC = () => {
     { id: 'artists', label: 'Artists', icon: User },
   ] as const;
 
+  const handleAddMusic = async (type: 'files' | 'folder') => {
+    try {
+      setShowAddMenu(false);
+      const files = await pickMusic({ type });
+      if (files.length === 0) return;
+
+      setIsAdding(true);
+      const newSongs = await scanFiles(files);
+      setSongs([...songs, ...newSongs]);
+    } catch (error) {
+      console.error('Failed to add music:', error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-m3-surface">
+    <div className="flex flex-col h-full bg-m3-surface relative">
       <div className="sticky top-0 z-20 bg-m3-surface/80 backdrop-blur-md px-4 py-4 space-y-4">
-        <h1 className="text-3xl font-bold text-m3-on-surface">Your Library</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-m3-on-surface">Your Library</h1>
+          <div className="relative">
+            <button 
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              className="p-3 bg-m3-primary-container text-m3-on-primary-container rounded-2xl hover:shadow-md transition-all active:scale-95"
+            >
+              <Plus size={24} />
+            </button>
+            
+            <AnimatePresence>
+              {showAddMenu && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  className="absolute right-0 top-14 w-48 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden"
+                >
+                  <button 
+                    onClick={() => handleAddMusic('folder')}
+                    className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                  >
+                    <FolderPlus size={18} />
+                    <span className="font-medium">Add Folder</span>
+                  </button>
+                  <button 
+                    onClick={() => handleAddMusic('files')}
+                    className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors border-t border-m3-outline/10"
+                  >
+                    <FilePlus size={18} />
+                    <span className="font-medium">Add Songs</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
         
         <div className="flex p-1 bg-m3-surface-variant/30 rounded-full w-full max-w-md">
           {segments.map((s) => (
@@ -39,6 +94,12 @@ export const LibraryView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto px-4 pb-32 pt-2 scroll-smooth no-scrollbar">
+        {isAdding && (
+          <div className="flex items-center justify-center p-8 text-m3-primary gap-3">
+            <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <span className="font-medium">Importing music...</span>
+          </div>
+        )}
         {activeSegment === 'songs' && (
           <div className="space-y-1">
             {songs.map((song) => (
