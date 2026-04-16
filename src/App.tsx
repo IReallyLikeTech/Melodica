@@ -22,11 +22,26 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const { songs, activeSong, playbackState, togglePlay, nextSong, prevSong } = useMusicStore();
+  const { songs, activeSong, playbackState, togglePlay, nextSong, prevSong, loadSongs, isLoading } = useMusicStore();
 
   useEffect(() => {
-    if (songs.length > 0) setShowOnboarding(false);
-  }, [songs]);
+    loadSongs();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && songs.length > 0) setShowOnboarding(false);
+  }, [songs, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen bg-m3-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-m3-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-m3-on-surface-variant font-medium animate-pulse">Waking up Melodica...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen bg-m3-surface overflow-hidden flex font-sans select-none text-m3-on-surface">

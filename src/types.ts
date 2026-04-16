@@ -56,3 +56,17 @@ export interface PlayerTheme {
   onSurfaceVariant: string;
   outline: string;
 }
+
+declare global {
+  interface Window {
+    median?: {
+      datastore?: {
+        set: (data: { [key: string]: any }) => void;
+        get: (data: { key: string }) => void;
+      };
+      filePicker?: {
+        show: (options: any) => void;
+      };
+    };
+  }
+}

@@ -19,13 +19,8 @@ export async function saveSongs(songs: Song[]) {
   const db = await initDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   for (const song of songs) {
-    // We don't store the actual File object in IDB easily for persists
-    // But we store the metadata. On relaunch, if the handle is gone, we might need a rescan
-    // Or we store the File handle if using File System Access API
-    await tx.store.put({
-      ...song,
-      file: null // Files can't be stored directly in many IDB implementations without hurdles
-    });
+    // In modern browsers (including Android WebView), File/Blob can be stored directly
+    await tx.store.put(song);
   }
   await tx.done;
 }

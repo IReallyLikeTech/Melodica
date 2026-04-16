@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Song, Album, Artist, PlaybackState, RepeatMode } from './types';
+import { saveSongs, getAllSongs } from './services/db';
 
 interface MusicStore {
   songs: Song[];
@@ -14,9 +15,11 @@ interface MusicStore {
   activeSong: Song | null;
   volume: number;
   recentSearches: string[];
+  isLoading: boolean;
   
   // Actions
-  setSongs: (songs: Song[]) => void;
+  loadSongs: () => Promise<void>;
+  setSongs: (songs: Song[], persist?: boolean) => void;
   playSong: (song: Song, fromList?: Song[]) => void;
   togglePlay: () => void;
   nextSong: () => void;
@@ -43,8 +46,27 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   activeSong: null,
   volume: 0.7,
   recentSearches: [],
+  isLoading: true,
 
-  setSongs: (songs) => {
+  loadSongs: async () => {
+    set({ isLoading: true });
+    try {
+      const persistedSongs = await getAllSongs() as Song[];
+      if (persistedSongs && persistedSongs.length > 0) {
+        get().setSongs(persistedSongs, false); // Don't re-save to DB when loading
+      }
+    } catch (error) {
+      console.error('Failed to load songs from DB:', error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  setSongs: (songs, persist = true) => {
+    if (persist) {
+      saveSongs(songs).catch(err => console.error('Failed to save songs to DB:', err));
+    }
+    
     // Generate Albums and Artists
     const albumMap = new Map<string, Album>();
     const artistMap = new Map<string, Artist>();
@@ -148,10 +170,19 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   
   addRecentSearch: (query) => {
     if (!query.trim()) return;
-    set((state) => ({
-      recentSearches: [query, ...state.recentSearches.filter(q => q !== query)].slice(0, 5)
-    }));
+    const newSearches = [query, ...get().recentSearches.filter(q => q !== query)].slice(0, 5);
+    set({ recentSearches: newSearches });
+    
+    // Sync with Median Datastore if available
+    if (window.median?.datastore) {
+      window.median.datastore.set({ recent_searches: newSearches });
+    }
   },
   
-  clearRecentSearches: () => set({ recentSearches: [] }),
+  clearRecentSearches: () => {
+    set({ recentSearches: [] });
+    if (window.median?.datastore) {
+      window.median.datastore.set({ recent_searches: [] });
+    }
+  },
 }));

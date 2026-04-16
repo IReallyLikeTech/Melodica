@@ -16,33 +16,52 @@ export const Onboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
-      input.webkitdirectory = true; // For folder selection
+      
+      // webkitdirectory is for desktop folder selection. 
+      // On mobile/Android, it often degrades to single file selection or fails.
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (!isMobile) {
+        input.webkitdirectory = true;
+      }
 
       input.onchange = async (e) => {
         const files = Array.from((e.target as HTMLInputElement).files || []);
+        
+        // Sync with Median Native Datastore if available
+        if (window.median?.datastore) {
+          window.median.datastore.set({ library_initialized: true, song_count: files.length });
+        }
+
         const audioFiles = files.filter(file => 
           file.type.startsWith('audio/') || 
           /\.(mp3|flac|wav|ogg|aac|m4a|wma)$/i.test(file.name)
         );
 
-        if (audioFiles.length === 0) return;
+        if (audioFiles.length === 0) {
+          // Alert user if no music files found
+          return;
+        }
 
         setScanning(true);
         const songs: Song[] = [];
 
         for (const file of audioFiles) {
-          const metadata = await extractMetadata(file);
-          
-          // Skip files < 30s as requested
-          if (metadata.duration && metadata.duration < 30) continue;
+          try {
+            const metadata = await extractMetadata(file);
+            
+            // Skip files < 30s as requested
+            if (metadata.duration && metadata.duration < 30) continue;
 
-          songs.push({
-            id: crypto.randomUUID(),
-            file,
-            path: (file as any).webkitRelativePath || file.name,
-            ...metadata as any
-          });
-          setCount(prev => prev + 1);
+            songs.push({
+              id: crypto.randomUUID(),
+              file,
+              path: (file as any).webkitRelativePath || file.name,
+              ...metadata as any
+            });
+            setCount(prev => prev + 1);
+          } catch (err) {
+            console.error('Error processing file:', file.name, err);
+          }
         }
 
         setSongs(songs);
