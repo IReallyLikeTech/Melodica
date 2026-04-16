@@ -1,0 +1,6 @@
+{
+  "name": "Melodica",
+  "description": "A modern Material You music player for local audio files with dynamic theming and high-fidelity metadata extraction.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

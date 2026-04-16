@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px;
+
+  --color-m3-primary: var(--m3-primary, #6750A4);
+  --color-m3-on-primary: var(--m3-on-primary, #FFFFFF);
+  --color-m3-primary-container: var(--m3-primary-container, #EADDFF);
+  --color-m3-on-primary-container: var(--m3-on-primary-container, #21005D);
+  
+  --color-m3-surface: var(--m3-surface, #FEF7FF);
+  --color-m3-on-surface: var(--m3-on-surface, #1D1B20);
+  --color-m3-surface-variant: var(--m3-surface-variant, #E7E0EB);
+  --color-m3-on-surface-variant: var(--m3-on-surface-variant, #49454F);
+  
+  --color-m3-outline: var(--m3-outline, #79747E);
+  --color-m3-secondary-container: var(--m3-secondary-container, #E8DEF8);
+  --color-m3-on-secondary-container: var(--m3-on-secondary-container, #1D192B);
+}
+
+@layer base {
+  body {
+    @apply bg-m3-surface text-m3-on-surface selection:bg-m3-primary-container;
+    font-feature-settings: "cv02", "cv05", "cv11";
+  }
+}
+
+.m3-tonal-elevation {
+  background: linear-gradient(0deg, rgba(103, 80, 164, 0.05), rgba(103, 80, 164, 0.05)), #FEF7FF;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
