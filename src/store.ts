@@ -13,6 +13,7 @@ interface MusicStore {
   isShuffle: boolean;
   activeSong: Song | null;
   volume: number;
+  recentSearches: string[];
   
   // Actions
   setSongs: (songs: Song[]) => void;
@@ -25,6 +26,8 @@ interface MusicStore {
   setVolume: (volume: number) => void;
   addToQueue: (song: Song) => void;
   clearQueue: () => void;
+  addRecentSearch: (query: string) => void;
+  clearRecentSearches: () => void;
 }
 
 export const useMusicStore = create<MusicStore>((set, get) => ({
@@ -39,6 +42,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   isShuffle: false,
   activeSong: null,
   volume: 0.7,
+  recentSearches: [],
 
   setSongs: (songs) => {
     // Generate Albums and Artists
@@ -140,5 +144,14 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   setVolume: (volume) => set({ volume }),
   
   addToQueue: (song) => set((state) => ({ queue: [...state.queue, song] })),
-  clearQueue: () => set({ queue: [], currentIndex: -1, activeSong: null, playbackState: 'idle' })
+  clearQueue: () => set({ queue: [], currentIndex: -1, activeSong: null, playbackState: 'idle' }),
+  
+  addRecentSearch: (query) => {
+    if (!query.trim()) return;
+    set((state) => ({
+      recentSearches: [query, ...state.recentSearches.filter(q => q !== query)].slice(0, 5)
+    }));
+  },
+  
+  clearRecentSearches: () => set({ recentSearches: [] }),
 }));
