@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ChevronDown, MoreVertical, Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Heart, Share2, ListMusic, Music } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { cn, formatDuration } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { activeSong, playbackState, togglePlay, nextSong, prevSong, repeatMode, setRepeatMode, isShuffle, toggleShuffle } = useMusicStore();

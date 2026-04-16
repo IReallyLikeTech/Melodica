@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search as SearchIcon, X, Music, History, Play, Disc, User } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { formatDuration, cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const SearchView: React.FC = () => {
   const [query, setQuery] = useState('');

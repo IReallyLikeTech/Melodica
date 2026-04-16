@@ -2,7 +2,7 @@ import React from 'react';
 import { Play, Pause, SkipForward, Music } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const MiniPlayer: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   const { activeSong, playbackState, togglePlay, nextSong } = useMusicStore();

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { BottomNav } from './components/BottomNav';
 import { MiniPlayer } from './components/MiniPlayer';
@@ -14,7 +14,7 @@ import { SearchView } from './components/Search';
 import { Sidebar } from './components/Sidebar';
 import { AudioPlayer } from './components/AudioPlayer';
 import { useMusicStore } from './store';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Music, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart } from 'lucide-react';
 import { formatDuration } from './lib/utils';
 

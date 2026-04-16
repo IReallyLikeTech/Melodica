@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FolderOpen, Music, ShieldCheck, ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { extractMetadata } from '../services/metadata';
 import { useMusicStore } from '../store';
 import { Song } from '../types';

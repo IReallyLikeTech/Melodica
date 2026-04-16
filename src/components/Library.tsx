@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMusicStore } from '../store';
 import { Music, Disc, User, Play, MoreVertical } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 export const LibraryView: React.FC = () => {
   const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists'>('songs');
