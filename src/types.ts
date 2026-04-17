@@ -39,6 +39,13 @@ export interface Artist {
   coverUrl?: string;
 }
 
+export interface Playlist {
+  id: string;
+  name: string;
+  songIds: string[];
+  createdAt: number;
+}
+
 export type PlaybackState = 'idle' | 'playing' | 'paused' | 'buffering';
 
 export type RepeatMode = 'off' | 'all' | 'one';

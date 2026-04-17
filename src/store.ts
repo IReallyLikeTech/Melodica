@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import { Song, Album, Artist, PlaybackState, RepeatMode } from './types';
-import { saveSongs, getAllSongs, deleteSongFromDB, updateSong } from './services/db';
+import { Song, Album, Artist, Playlist, PlaybackState, RepeatMode, PlayerTheme } from './types';
+import { saveSongs, getAllSongs, deleteSongFromDB, updateSong, savePlaylist, deletePlaylistFromDB, getAllPlaylists } from './services/db';
+import { generateThemeFromColor } from './lib/colorUtils';
 
 interface MusicStore {
   songs: Song[];
   albums: Album[];
   artists: Artist[];
+  playlists: Playlist[];
   queue: Song[];
   history: Song[];
   currentIndex: number;
@@ -13,6 +15,7 @@ interface MusicStore {
   repeatMode: RepeatMode;
   isShuffle: boolean;
   activeSong: Song | null;
+  playerTheme: PlayerTheme;
   volume: number;
   recentSearches: string[];
   isLoading: boolean;
@@ -22,6 +25,14 @@ interface MusicStore {
   setSongs: (songs: Song[], persist?: boolean) => void;
   removeSongs: (ids: string[]) => void;
   toggleFavorite: (songId: string) => void;
+  
+  // Playlist Actions
+  createPlaylist: (name: string) => void;
+  deletePlaylist: (id: string) => void;
+  addSongToPlaylist: (playlistId: string, songId: string) => void;
+  removeSongFromPlaylist: (playlistId: string, songId: string) => void;
+  renamePlaylist: (id: string, name: string) => void;
+
   playSong: (song: Song, fromList?: Song[]) => void;
   togglePlay: () => void;
   nextSong: () => void;
@@ -39,6 +50,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   songs: [],
   albums: [],
   artists: [],
+  playlists: [],
   queue: [],
   history: [],
   currentIndex: -1,
@@ -46,6 +58,21 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   repeatMode: 'off',
   isShuffle: false,
   activeSong: null,
+  playerTheme: {
+    primary: '#6750A4',
+    onPrimary: '#FFFFFF',
+    primaryContainer: '#EADDFF',
+    onPrimaryContainer: '#21005D',
+    secondary: '#625B71',
+    onSecondary: '#FFFFFF',
+    secondaryContainer: '#E8DEF8',
+    onSecondaryContainer: '#1D192B',
+    surface: '#FFFBFE',
+    onSurface: '#1C1B1F',
+    surfaceVariant: '#E7E0EC',
+    onSurfaceVariant: '#49454F',
+    outline: '#79747E',
+  },
   volume: 0.7,
   recentSearches: [],
   isLoading: true,
@@ -68,9 +95,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
 
         // Then, in the background, regenerate cover URLs as they are session-bound
         // We do this in smaller chunks to avoid blocking the main thread
-        const { extractCover } = await import('./services/metadata');
+        const { extractCover, getDominantColor } = await import('./services/metadata');
         
-        const updatedSongs = [...persistedSongs];
+        const updatedSongs = [...initializedSongs];
         let hasChanges = false;
 
         for (let i = 0; i < updatedSongs.length; i++) {
@@ -79,6 +106,11 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
             const newCoverUrl = await extractCover(song.file);
             if (newCoverUrl) {
               updatedSongs[i] = { ...song, coverUrl: newCoverUrl };
+              // Also extract dominant color if missing
+              if (!song.dominantColor) {
+                const color = await getDominantColor(newCoverUrl);
+                updatedSongs[i].dominantColor = color;
+              }
               hasChanges = true;
             }
           }
@@ -96,7 +128,9 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to load songs from DB:', error);
     } finally {
-      set({ isLoading: false });
+      // Load Playlists
+      const persistedPlaylists = await getAllPlaylists();
+      set({ playlists: persistedPlaylists || [], isLoading: false });
     }
   },
 
@@ -192,11 +226,77 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       get().setSongs(updatedSongs, false);
     },
 
+    createPlaylist: (name) => {
+      const newPlaylist: Playlist = {
+        id: crypto.randomUUID(),
+        name,
+        songIds: [],
+        createdAt: Date.now()
+      };
+      const updatedPlaylists = [...get().playlists, newPlaylist];
+      set({ playlists: updatedPlaylists });
+      savePlaylist(newPlaylist).catch(err => console.error('Failed to save playlist:', err));
+    },
+
+    deletePlaylist: (id) => {
+      const updatedPlaylists = get().playlists.filter(p => p.id !== id);
+      set({ playlists: updatedPlaylists });
+      deletePlaylistFromDB(id).catch(err => console.error('Failed to delete playlist:', err));
+    },
+
+    addSongToPlaylist: (playlistId, songId) => {
+      const playlists = get().playlists;
+      const index = playlists.findIndex(p => p.id === playlistId);
+      if (index === -1) return;
+
+      const playlist = playlists[index];
+      if (playlist.songIds.includes(songId)) return;
+
+      const updatedPlaylist = { ...playlist, songIds: [...playlist.songIds, songId] };
+      const updatedPlaylists = [...playlists];
+      updatedPlaylists[index] = updatedPlaylist;
+
+      set({ playlists: updatedPlaylists });
+      savePlaylist(updatedPlaylist).catch(err => console.error('Failed to update playlist:', err));
+    },
+
+    removeSongFromPlaylist: (playlistId, songId) => {
+      const playlists = get().playlists;
+      const index = playlists.findIndex(p => p.id === playlistId);
+      if (index === -1) return;
+
+      const playlist = playlists[index];
+      const updatedPlaylist = { ...playlist, songIds: playlist.songIds.filter(id => id !== songId) };
+      const updatedPlaylists = [...playlists];
+      updatedPlaylists[index] = updatedPlaylist;
+
+      set({ playlists: updatedPlaylists });
+      savePlaylist(updatedPlaylist).catch(err => console.error('Failed to update playlist:', err));
+    },
+
+    renamePlaylist: (id, name) => {
+      const playlists = get().playlists;
+      const index = playlists.findIndex(p => p.id === id);
+      if (index === -1) return;
+
+      const updatedPlaylist = { ...playlists[index], name };
+      const updatedPlaylists = [...playlists];
+      updatedPlaylists[index] = updatedPlaylist;
+
+      set({ playlists: updatedPlaylists });
+      savePlaylist(updatedPlaylist).catch(err => console.error('Failed to rename playlist:', err));
+    },
+
     playSong: (song, fromList) => {
     const list = fromList || get().songs;
     const index = list.findIndex(s => s.id === song.id);
+    
+    // Update theme
+    const theme = song.dominantColor ? generateThemeFromColor(song.dominantColor) : get().playerTheme;
+
     set({
       activeSong: song,
+      playerTheme: theme,
       queue: list,
       currentIndex: index,
       playbackState: 'playing'
@@ -223,9 +323,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       else return set({ playbackState: 'idle' });
     }
 
+    const nextSong = queue[nextIndex];
+    const theme = nextSong.dominantColor ? generateThemeFromColor(nextSong.dominantColor) : get().playerTheme;
+
     set({
       currentIndex: nextIndex,
-      activeSong: queue[nextIndex],
+      activeSong: nextSong,
+      playerTheme: theme,
       playbackState: 'playing'
     });
   },
@@ -237,9 +341,13 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     let prevIndex = currentIndex - 1;
     if (prevIndex < 0) prevIndex = queue.length - 1;
 
+    const prevSong = queue[prevIndex];
+    const theme = prevSong.dominantColor ? generateThemeFromColor(prevSong.dominantColor) : get().playerTheme;
+
     set({
       currentIndex: prevIndex,
-      activeSong: queue[prevIndex],
+      activeSong: prevSong,
+      playerTheme: theme,
       playbackState: 'playing'
     });
   },

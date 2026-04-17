@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, MoreVertical, Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Heart, Share2, ListMusic, Music } from 'lucide-react';
+import { ChevronDown, MoreVertical, Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Heart, Share2, ListMusic, Music, PlusCircle } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PlaylistMenu } from './PlaylistMenu';
 
 export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { activeSong, playbackState, togglePlay, nextSong, prevSong, repeatMode, setRepeatMode, isShuffle, toggleShuffle, toggleFavorite } = useMusicStore();
+  const { activeSong, playbackState, togglePlay, nextSong, prevSong, repeatMode, setRepeatMode, isShuffle, toggleShuffle, toggleFavorite, playerTheme } = useMusicStore();
   const [currentTime, setCurrentTime] = useState(0);
+  const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
 
   useEffect(() => {
     let interval: any;
@@ -30,27 +32,49 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           className="fixed inset-0 z-50 flex flex-col p-6 overflow-hidden safe-area-top"
           style={{ 
-            backgroundColor: activeSong.dominantColor || '#FEF7FF',
-            color: activeSong.dominantColor ? '#FFFFFF' : '#1D1B20' 
+            backgroundColor: playerTheme.surface,
+            color: playerTheme.onSurface 
           }}
         >
-          {/* Transparent Overlay for better text readability if color is bright */}
-          <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+          {/* Subtle gradient overlay based on primary color */}
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-20" 
+            style={{ 
+              background: `radial-gradient(circle at 50% 30%, ${playerTheme.primary}, transparent 70%)` 
+            }} 
+          />
           
           <div className="relative z-10 flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10">
+           {/* Header */}
+            <div className="flex items-center justify-between mb-8" style={{ color: playerTheme.onSurface }}>
+              <button 
+                onClick={onClose} 
+                className="p-2 rounded-full transition-colors"
+                style={{ backgroundColor: playerTheme.surfaceVariant }}
+              >
                 <ChevronDown size={28} />
               </button>
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center flex-1 mx-4">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-70">Playing from library</span>
-                <span className="text-sm font-bold truncate max-w-[200px]">{activeSong.album}</span>
+                <span className="text-sm font-bold truncate w-full text-center">{activeSong.album}</span>
               </div>
-              <button className="p-2 rounded-full hover:bg-white/10">
-                <MoreVertical size={24} />
+              <button 
+                onClick={() => setShowPlaylistMenu(true)}
+                className="p-2 rounded-full transition-colors"
+                style={{ backgroundColor: playerTheme.surfaceVariant }}
+              >
+                <PlusCircle size={24} />
               </button>
             </div>
+
+            <AnimatePresence>
+              {showPlaylistMenu && (
+                <PlaylistMenu 
+                  songId={activeSong.id} 
+                  onClose={() => setShowPlaylistMenu(false)} 
+                />
+              )}
+            </AnimatePresence>
 
             {/* Album Art */}
             <div className="flex-1 flex flex-col items-center justify-center mb-8">
@@ -93,12 +117,14 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                 </div>
                 <button 
                   onClick={() => toggleFavorite(activeSong.id)}
-                  className="p-3 rounded-full hover:bg-white/10 transition-colors"
+                  className="p-3 rounded-full transition-colors"
+                  style={{ backgroundColor: playerTheme.surfaceVariant }}
                 >
                   <Heart 
                     size={32} 
-                    fill={activeSong.isFavorite ? "currentColor" : "none"} 
-                    className={cn(activeSong.isFavorite ? "text-white" : "opacity-80")}
+                    fill={activeSong.isFavorite ? playerTheme.primary : "none"} 
+                    className={cn(activeSong.isFavorite ? "text-primary" : "opacity-80")}
+                    style={{ color: activeSong.isFavorite ? playerTheme.primary : playerTheme.onSurfaceVariant }}
                   />
                 </button>
               </div>
@@ -106,17 +132,17 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
 
             {/* Progress */}
             <div className="w-full space-y-3 mb-8">
-              <div className="relative h-1.5 w-full bg-white/20 rounded-full overflow-hidden cursor-pointer group">
+              <div 
+                className="relative h-2 w-full rounded-full overflow-hidden cursor-pointer group"
+                style={{ backgroundColor: playerTheme.surfaceVariant }}
+              >
                 <motion.div 
-                  className="h-full bg-white"
+                  className="h-full"
+                  style={{ backgroundColor: playerTheme.primary }}
                   animate={{ width: `${(currentTime / activeSong.duration) * 100}%` }}
                 />
-                <motion.div 
-                  className="absolute top-1/2 -translate-y-1/2 h-4 w-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ left: `calc(${(currentTime / activeSong.duration) * 100}% - 8px)` }}
-                />
               </div>
-              <div className="flex justify-between text-xs font-bold opacity-70 tracking-widest">
+              <div className="flex justify-between text-xs font-bold opacity-70 tracking-widest" style={{ color: playerTheme.onSurfaceVariant }}>
                 <span>{formatDuration(currentTime)}</span>
                 <span>{formatDuration(activeSong.duration)}</span>
               </div>
@@ -126,19 +152,28 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
             <div className="flex items-center justify-between mb-10">
               <button 
                 onClick={toggleShuffle}
-                className={cn("p-3 rounded-full transition-all", isShuffle ? "bg-white/20 shadow-inner" : "opacity-60 hover:opacity-100")}
+                className={cn("p-3 rounded-full transition-all")}
+                style={{ 
+                  backgroundColor: isShuffle ? playerTheme.primaryContainer : 'transparent',
+                  color: isShuffle ? playerTheme.onPrimaryContainer : playerTheme.onSurfaceVariant
+                }}
               >
                 <Shuffle size={24} />
               </button>
               
               <div className="flex items-center gap-4">
-                <button onClick={prevSong} className="p-4 hover:bg-white/10 rounded-full transition-colors">
+                <button 
+                  onClick={prevSong} 
+                  className="p-4 rounded-full transition-colors"
+                  style={{ color: playerTheme.onSurface, backgroundColor: playerTheme.surfaceVariant }}
+                >
                   <SkipBack size={36} className="fill-current" />
                 </button>
                 
                 <button 
                   onClick={togglePlay}
-                  className="h-24 w-24 rounded-[32px] bg-white text-black flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"
+                  className="h-24 w-24 rounded-[32px] flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"
+                  style={{ backgroundColor: playerTheme.primary, color: playerTheme.onPrimary }}
                 >
                   {playbackState === 'playing' ? (
                     <Pause size={48} className="fill-current" />
@@ -147,17 +182,32 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   )}
                 </button>
                 
-                <button onClick={nextSong} className="p-4 hover:bg-white/10 rounded-full transition-colors">
+                <button 
+                  onClick={nextSong} 
+                  className="p-4 rounded-full transition-colors"
+                  style={{ color: playerTheme.onSurface, backgroundColor: playerTheme.surfaceVariant }}
+                >
                   <SkipForward size={36} className="fill-current" />
                 </button>
               </div>
 
               <button 
                 onClick={() => setRepeatMode(repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off')}
-                className={cn("p-3 rounded-full transition-all relative", repeatMode !== 'off' ? "bg-white/20 shadow-inner" : "opacity-60 hover:opacity-100")}
+                className={cn("p-3 rounded-full transition-all relative")}
+                style={{ 
+                  backgroundColor: repeatMode !== 'off' ? playerTheme.primaryContainer : 'transparent',
+                  color: repeatMode !== 'off' ? playerTheme.onPrimaryContainer : playerTheme.onSurfaceVariant
+                }}
               >
                 <Repeat size={24} />
-                {repeatMode === 'one' && <span className="absolute top-1 right-1 text-[10px] font-black bg-white text-black h-4 w-4 rounded-full flex items-center justify-center">1</span>}
+                {repeatMode === 'one' && (
+                  <span 
+                    className="absolute top-1 right-1 text-[10px] font-black h-4 w-4 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: playerTheme.primary, color: playerTheme.onPrimary }}
+                  >
+                    1
+                  </span>
+                )}
               </button>
             </div>
 

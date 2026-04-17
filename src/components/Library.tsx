@@ -1,19 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import { useMusicStore } from '../store';
-import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus, Heart, Trash2, Copy, X, SortAsc, Check } from 'lucide-react';
+import { Song } from '../types';
+import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus, Heart, Trash2, Copy, X, SortAsc, Check, ListMusic, PlusCircle, Edit2 } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pickMusic, scanFiles } from '../services/musicScanner';
+import { PlaylistMenu } from './PlaylistMenu';
 
 export const LibraryView: React.FC = () => {
-  const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists'>('songs');
+  const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists' | 'playlists'>('songs');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [playlistToAddTo, setPlaylistToAddTo] = useState<string | null>(null);
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
   
-  const { songs, albums, artists, playSong, setSongs, removeSongs, toggleFavorite } = useMusicStore();
+  const { songs, albums, artists, playlists, playSong, setSongs, removeSongs, toggleFavorite, createPlaylist, deletePlaylist, renamePlaylist, removeSongFromPlaylist } = useMusicStore();
 
   const [songSort, setSongSort] = useState<'title' | 'artist' | 'album' | 'dateAdded'>('dateAdded');
   const [albumSort, setAlbumSort] = useState<'name' | 'artist' | 'year'>('name');
@@ -23,6 +29,7 @@ export const LibraryView: React.FC = () => {
     { id: 'songs', label: 'Songs', icon: Music },
     { id: 'albums', label: 'Albums', icon: Disc },
     { id: 'artists', label: 'Artists', icon: User },
+    { id: 'playlists', label: 'Playlists', icon: ListMusic },
   ] as const;
 
   // Sorting logic
@@ -52,6 +59,15 @@ export const LibraryView: React.FC = () => {
       return 0;
     });
   }, [artists, artistSort]);
+
+  const handleCreatePlaylist = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPlaylistName.trim()) {
+      createPlaylist(newPlaylistName.trim());
+      setNewPlaylistName('');
+      setIsCreatingPlaylist(false);
+    }
+  };
 
   // Duplicate detection logic
   const duplicateGroups = useMemo(() => {
@@ -83,6 +99,12 @@ export const LibraryView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-m3-surface relative">
       <div className="sticky top-0 z-20 bg-m3-surface/80 backdrop-blur-md px-4 py-4 space-y-4">
+        {playlistToAddTo && (
+          <PlaylistMenu 
+            songId={playlistToAddTo} 
+            onClose={() => setPlaylistToAddTo(null)} 
+          />
+        )}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-m3-on-surface">Your Library</h1>
           <div className="flex items-center gap-2">
@@ -291,15 +313,26 @@ export const LibraryView: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.95, x: -20 }}
                         animate={{ opacity: 1, scale: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.95, x: -20 }}
-                        className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[140px] overflow-hidden"
+                        className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[180px] overflow-hidden"
                       >
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPlaylistToAddTo(song.id);
+                            setSelectedSongId(null);
+                          }}
+                          className="flex items-center gap-3 w-full p-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                        >
+                          <ListMusic size={16} />
+                          <span className="text-sm font-medium">Add to Playlist</span>
+                        </button>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             removeSongs([song.id]);
                             setSelectedSongId(null);
                           }}
-                          className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
+                          className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors border-t border-m3-outline/10"
                         >
                           <Trash2 size={16} />
                           <span className="text-sm font-medium">Remove from Library</span>
@@ -433,6 +466,155 @@ export const LibraryView: React.FC = () => {
                 </div>
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {activeSegment === 'playlists' && (
+          <div className="space-y-4">
+            <button 
+              onClick={() => setIsCreatingPlaylist(true)}
+              className="flex items-center gap-4 w-full p-4 rounded-3xl bg-m3-primary/10 text-m3-primary border-2 border-dashed border-m3-primary/20 hover:bg-m3-primary/20 transition-all font-bold"
+            >
+              <PlusCircle size={24} />
+              Create New Playlist
+            </button>
+
+            <AnimatePresence>
+              {isCreatingPlaylist && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <form onSubmit={handleCreatePlaylist} className="p-4 bg-m3-surface-variant/30 rounded-3xl space-y-4">
+                    <input 
+                      autoFocus
+                      type="text"
+                      placeholder="Enter playlist name"
+                      value={newPlaylistName}
+                      onChange={e => setNewPlaylistName(e.target.value)}
+                      className="w-full h-12 bg-m3-surface px-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-m3-primary text-m3-on-surface font-bold"
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        type="button"
+                        onClick={() => setIsCreatingPlaylist(false)}
+                        className="flex-1 py-3 bg-m3-surface text-m3-on-surface font-bold rounded-2xl"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        className="flex-1 py-3 bg-m3-primary text-m3-on-primary font-bold rounded-2xl"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {playlists.map((playlist) => (
+                <div 
+                  key={playlist.id}
+                  className="bg-m3-surface-variant/20 p-4 rounded-[32px] border border-m3-outline/5 hover:border-m3-outline/20 transition-all group relative"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-2xl bg-m3-secondary-container flex items-center justify-center text-m3-on-secondary-container shadow-sm">
+                      <ListMusic size={32} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-lg truncate">{playlist.name}</h4>
+                      <p className="text-sm opacity-60 font-medium">{playlist.songIds.length} tracks</p>
+                    </div>
+                    
+                    <div className="relative">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPlaylistId(selectedPlaylistId === playlist.id ? null : playlist.id);
+                        }}
+                        className="p-2 rounded-full hover:bg-m3-surface-variant/50 text-m3-on-surface-variant transition-colors"
+                      >
+                        <MoreVertical size={20} />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {selectedPlaylistId === playlist.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, x: -10 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, x: -10 }}
+                            className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[140px] overflow-hidden"
+                          >
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newName = prompt('Enter new name', playlist.name);
+                                if (newName) renamePlaylist(playlist.id, newName);
+                                setSelectedPlaylistId(null);
+                              }}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                            >
+                              <Edit2 size={16} />
+                              <span className="text-sm font-medium">Rename</span>
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Delete this playlist?')) deletePlaylist(playlist.id);
+                                setSelectedPlaylistId(null);
+                              }}
+                              className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors border-t border-m3-outline/10"
+                            >
+                                <Trash2 size={16} />
+                                <span className="text-sm font-medium">Delete</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                  
+                  {playlist.songIds.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-m3-outline/5 space-y-1">
+                      {playlist.songIds.slice(0, 3).map(sid => {
+                        const song = songs.find(s => s.id === sid);
+                        if (!song) return null;
+                        return (
+                          <div key={sid} className="flex items-center gap-2 group/item">
+                            <span className="text-xs truncate flex-1 opacity-70 font-medium">{song.title}</span>
+                            <button 
+                              onClick={() => removeSongFromPlaylist(playlist.id, sid)}
+                              className="p-1 opacity-0 group-hover/item:opacity-100 hover:text-red-500 transition-all"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {playlist.songIds.length > 3 && (
+                        <p className="text-[10px] opacity-40 font-bold uppercase mt-1">+{playlist.songIds.length - 3} more</p>
+                      )}
+                      
+                      <button 
+                        onClick={() => {
+                          const playlistSongs = playlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[];
+                          if (playlistSongs.length > 0) playSong(playlistSongs[0], playlistSongs);
+                        }}
+                        className="mt-4 w-full py-2 bg-m3-primary text-m3-on-primary rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-sm active:scale-95 transition-all"
+                      >
+                        <Play size={16} fill="currentColor" />
+                        Play Playlist
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -3,13 +3,17 @@ import { Song } from '../types';
 
 const DB_NAME = 'melodica-db';
 const STORE_NAME = 'songs';
-const DB_VERSION = 1;
+const PLAYLIST_STORE = 'playlists';
+const DB_VERSION = 2;
 
 export async function initDB(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(PLAYLIST_STORE)) {
+        db.createObjectStore(PLAYLIST_STORE, { keyPath: 'id' });
       }
     },
   });
@@ -38,4 +42,20 @@ export async function deleteSongFromDB(id: string) {
 export async function getAllSongs(): Promise<Partial<Song>[]> {
   const db = await initDB();
   return db.getAll(STORE_NAME);
+}
+
+// Playlist operations
+export async function savePlaylist(playlist: any) {
+  const db = await initDB();
+  return db.put(PLAYLIST_STORE, playlist);
+}
+
+export async function deletePlaylistFromDB(id: string) {
+  const db = await initDB();
+  return db.delete(PLAYLIST_STORE, id);
+}
+
+export async function getAllPlaylists(): Promise<any[]> {
+  const db = await initDB();
+  return db.getAll(PLAYLIST_STORE);
 }

@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search as SearchIcon, X, Music, History, Play, Disc, User, Heart, Trash2, MoreVertical } from 'lucide-react';
+import { Search as SearchIcon, X, Music, History, Play, Disc, User, Heart, Trash2, MoreVertical, ListMusic } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { formatDuration, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PlaylistMenu } from './PlaylistMenu';
 
 export const SearchView: React.FC = () => {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [playlistToAddTo, setPlaylistToAddTo] = useState<string | null>(null);
   const { songs, albums, artists, playSong, recentSearches, addRecentSearch, clearRecentSearches, toggleFavorite, removeSongs } = useMusicStore();
 
   useEffect(() => {
@@ -61,6 +63,12 @@ export const SearchView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-m3-surface overflow-auto no-scrollbar">
+      {playlistToAddTo && (
+        <PlaylistMenu 
+          songId={playlistToAddTo} 
+          onClose={() => setPlaylistToAddTo(null)} 
+        />
+      )}
       <div className="p-4 sticky top-0 z-20 bg-m3-surface">
         <div className="relative">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-m3-on-surface-variant">
@@ -215,15 +223,26 @@ export const SearchView: React.FC = () => {
                                 initial={{ opacity: 0, scale: 0.95, x: -10 }}
                                 animate={{ opacity: 1, scale: 1, x: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, x: -10 }}
-                                className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[120px] overflow-hidden"
+                                className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[180px] overflow-hidden"
                               >
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlaylistToAddTo(song.id);
+                                    setSelectedSongId(null);
+                                  }}
+                                  className="flex items-center gap-3 w-full p-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                                >
+                                  <ListMusic size={16} />
+                                  <span className="text-xs font-bold">Add to Playlist</span>
+                                </button>
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     removeSongs([song.id]);
                                     setSelectedSongId(null);
                                   }}
-                                  className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
+                                  className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors border-t border-m3-outline/10"
                                 >
                                   <Trash2 size={16} />
                                   <span className="text-xs font-bold">Remove from Library</span>
