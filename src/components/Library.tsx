@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMusicStore } from '../store';
-import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus, Heart, Trash2, Copy, X } from 'lucide-react';
+import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus, Heart, Trash2, Copy, X, SortAsc, Check } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pickMusic, scanFiles } from '../services/musicScanner';
@@ -8,11 +8,16 @@ import { pickMusic, scanFiles } from '../services/musicScanner';
 export const LibraryView: React.FC = () => {
   const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists'>('songs');
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [showDuplicates, setShowDuplicates] = useState(false);
   
   const { songs, albums, artists, playSong, setSongs, removeSongs, toggleFavorite } = useMusicStore();
+
+  const [songSort, setSongSort] = useState<'title' | 'artist' | 'album' | 'dateAdded'>('dateAdded');
+  const [albumSort, setAlbumSort] = useState<'name' | 'artist' | 'year'>('name');
+  const [artistSort, setArtistSort] = useState<'name' | 'songs'>('name');
 
   const segments = [
     { id: 'songs', label: 'Songs', icon: Music },
@@ -20,8 +25,36 @@ export const LibraryView: React.FC = () => {
     { id: 'artists', label: 'Artists', icon: User },
   ] as const;
 
+  // Sorting logic
+  const sortedSongs = useMemo(() => {
+    return [...songs].sort((a, b) => {
+      if (songSort === 'title') return a.title.localeCompare(b.title);
+      if (songSort === 'artist') return a.artist.localeCompare(b.artist);
+      if (songSort === 'album') return a.album.localeCompare(b.album);
+      if (songSort === 'dateAdded') return b.dateAdded - a.dateAdded;
+      return 0;
+    });
+  }, [songs, songSort]);
+
+  const sortedAlbums = useMemo(() => {
+    return [...albums].sort((a, b) => {
+      if (albumSort === 'name') return a.name.localeCompare(b.name);
+      if (albumSort === 'artist') return a.artist.localeCompare(b.artist);
+      if (albumSort === 'year') return (b.year || 0) - (a.year || 0);
+      return 0;
+    });
+  }, [albums, albumSort]);
+
+  const sortedArtists = useMemo(() => {
+    return [...artists].sort((a, b) => {
+      if (artistSort === 'name') return a.name.localeCompare(b.name);
+      if (artistSort === 'songs') return b.songIds.length - a.songIds.length;
+      return 0;
+    });
+  }, [artists, artistSort]);
+
   // Duplicate detection logic
-  const duplicateGroups = React.useMemo(() => {
+  const duplicateGroups = useMemo(() => {
     const groups = new Map<string, typeof songs>();
     songs.forEach(s => {
       const key = `${s.title.toLowerCase()}-${s.artist.toLowerCase()}`;
@@ -62,6 +95,78 @@ export const LibraryView: React.FC = () => {
                 <span className="text-xs font-bold uppercase tracking-wider">{duplicateGroups.length} Duplicates</span>
               </button>
             )}
+            
+            {/* Sort Menu */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className={cn(
+                  "p-3 rounded-2xl transition-all active:scale-95",
+                  showSortMenu ? "bg-m3-secondary-container text-m3-on-secondary-container" : "bg-m3-surface-variant/30 text-m3-on-surface-variant"
+                )}
+              >
+                <SortAsc size={24} />
+              </button>
+              
+              <AnimatePresence>
+                {showSortMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute right-0 top-14 w-56 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden py-2"
+                  >
+                    <div className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-m3-on-surface-variant/60">Sort by</div>
+                    
+                    {activeSegment === 'songs' && [
+                      { id: 'dateAdded', label: 'Date Added' },
+                      { id: 'title', label: 'Title' },
+                      { id: 'artist', label: 'Artist' },
+                      { id: 'album', label: 'Album' },
+                    ].map(opt => (
+                      <button 
+                        key={opt.id}
+                        onClick={() => { setSongSort(opt.id as any); setShowSortMenu(false); }}
+                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                      >
+                        <span className={cn("font-medium", songSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        {songSort === opt.id && <Check size={18} className="text-m3-primary" />}
+                      </button>
+                    ))}
+                    
+                    {activeSegment === 'albums' && [
+                      { id: 'name', label: 'Name' },
+                      { id: 'artist', label: 'Artist' },
+                      { id: 'year', label: 'Year' },
+                    ].map(opt => (
+                      <button 
+                        key={opt.id}
+                        onClick={() => { setAlbumSort(opt.id as any); setShowSortMenu(false); }}
+                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                      >
+                        <span className={cn("font-medium", albumSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        {albumSort === opt.id && <Check size={18} className="text-m3-primary" />}
+                      </button>
+                    ))}
+                    
+                    {activeSegment === 'artists' && [
+                      { id: 'name', label: 'Name' },
+                      { id: 'songs', label: 'Song Count' },
+                    ].map(opt => (
+                      <button 
+                        key={opt.id}
+                        onClick={() => { setArtistSort(opt.id as any); setShowSortMenu(false); }}
+                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                      >
+                        <span className={cn("font-medium", artistSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        {artistSort === opt.id && <Check size={18} className="text-m3-primary" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <div className="relative">
               <button 
                 onClick={() => setShowAddMenu(!showAddMenu)}
@@ -127,10 +232,10 @@ export const LibraryView: React.FC = () => {
         )}
         {activeSegment === 'songs' && (
           <div className="space-y-1">
-            {songs.map((song) => (
+            {sortedSongs.map((song) => (
               <div 
                 key={song.id}
-                onClick={() => playSong(song, songs)}
+                onClick={() => playSong(song, sortedSongs)}
                 className="group flex items-center p-3 rounded-2xl hover:bg-m3-primary-container/30 active:bg-m3-primary-container/50 transition-colors cursor-pointer"
               >
                 <div className="relative h-12 w-12 min-w-[48px] rounded-xl overflow-hidden bg-m3-surface-variant flex items-center justify-center shadow-sm">
@@ -279,7 +384,7 @@ export const LibraryView: React.FC = () => {
 
         {activeSegment === 'albums' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {albums.map((album) => (
+            {sortedAlbums.map((album) => (
               <motion.div 
                 whileHover={{ y: -4 }}
                 key={`${album.name}-${album.artist}`}
@@ -305,7 +410,7 @@ export const LibraryView: React.FC = () => {
 
         {activeSegment === 'artists' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {artists.map((artist) => (
+            {sortedArtists.map((artist) => (
               <motion.div 
                 whileHover={{ y: -4 }}
                 key={artist.name}

@@ -21,6 +21,7 @@ export async function scanFiles(files: File[], onProgress?: (count: number) => v
         id: crypto.randomUUID(),
         file,
         path: (file as any).webkitRelativePath || file.name,
+        dateAdded: Date.now(),
         ...metadata as any
       });
       

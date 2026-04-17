@@ -55,8 +55,16 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     try {
       const persistedSongs = await getAllSongs() as Song[];
       if (persistedSongs && persistedSongs.length > 0) {
+        // Ensure all songs have dateAdded (migration)
+        const initializedSongs = persistedSongs.map(s => {
+          if (s.dateAdded === undefined) {
+            return { ...s, dateAdded: 0 } as Song;
+          }
+          return s as Song;
+        });
+
         // First batch set songs so UI is populated with metadata immediately
-        get().setSongs(persistedSongs, false);
+        get().setSongs(initializedSongs, false);
 
         // Then, in the background, regenerate cover URLs as they are session-bound
         // We do this in smaller chunks to avoid blocking the main thread
