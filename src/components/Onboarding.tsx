@@ -43,11 +43,19 @@ export const Onboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 px-4">
           <h1 className="text-4xl font-bold tracking-tight text-m3-on-surface">Melodica</h1>
           <p className="text-m3-on-surface-variant text-lg">
             Your music, your way. Beautifully organized and always ready.
           </p>
+          {/Android/i.test(navigator.userAgent) && (
+            <div className="mt-4 p-3 bg-m3-primary-container/30 rounded-2xl text-xs text-m3-on-surface-variant leading-relaxed">
+              <p className="font-bold mb-1 flex items-center justify-center gap-1 text-m3-primary">
+                <Music size={14} /> Android Tip
+              </p>
+              When prompted, choose your <strong>System Picker</strong> or <strong>Files</strong> and long-press to select all songs in your Music folder.
+            </div>
+          )}
         </div>
 
         {!scanning ? (
