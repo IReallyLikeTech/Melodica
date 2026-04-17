@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMusicStore } from '../store';
-import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus } from 'lucide-react';
+import { Music, Disc, User, Play, MoreVertical, Plus, FolderPlus, FilePlus, Heart, Trash2, Copy, X } from 'lucide-react';
 import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pickMusic, scanFiles } from '../services/musicScanner';
@@ -9,13 +9,27 @@ export const LibraryView: React.FC = () => {
   const [activeSegment, setActiveSegment] = useState<'songs' | 'albums' | 'artists'>('songs');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const { songs, albums, artists, playSong, setSongs } = useMusicStore();
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  
+  const { songs, albums, artists, playSong, setSongs, removeSongs, toggleFavorite } = useMusicStore();
 
   const segments = [
     { id: 'songs', label: 'Songs', icon: Music },
     { id: 'albums', label: 'Albums', icon: Disc },
     { id: 'artists', label: 'Artists', icon: User },
   ] as const;
+
+  // Duplicate detection logic
+  const duplicateGroups = React.useMemo(() => {
+    const groups = new Map<string, typeof songs>();
+    songs.forEach(s => {
+      const key = `${s.title.toLowerCase()}-${s.artist.toLowerCase()}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(s);
+    });
+    return Array.from(groups.values()).filter(g => g.length > 1);
+  }, [songs]);
 
   const handleAddMusic = async (type: 'files' | 'folder') => {
     try {
@@ -38,39 +52,50 @@ export const LibraryView: React.FC = () => {
       <div className="sticky top-0 z-20 bg-m3-surface/80 backdrop-blur-md px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-m3-on-surface">Your Library</h1>
-          <div className="relative">
-            <button 
-              onClick={() => setShowAddMenu(!showAddMenu)}
-              className="p-3 bg-m3-primary-container text-m3-on-primary-container rounded-2xl hover:shadow-md transition-all active:scale-95"
-            >
-              <Plus size={24} />
-            </button>
-            
-            <AnimatePresence>
-              {showAddMenu && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  className="absolute right-0 top-14 w-48 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden"
-                >
-                  <button 
-                    onClick={() => handleAddMusic('folder')}
-                    className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+          <div className="flex items-center gap-2">
+            {duplicateGroups.length > 0 && (
+              <button 
+                onClick={() => setShowDuplicates(true)}
+                className="p-3 bg-m3-surface-variant/30 text-m3-primary rounded-2xl flex items-center gap-2 transition-all active:scale-95"
+              >
+                <Copy size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">{duplicateGroups.length} Duplicates</span>
+              </button>
+            )}
+            <div className="relative">
+              <button 
+                onClick={() => setShowAddMenu(!showAddMenu)}
+                className="p-3 bg-m3-primary-container text-m3-on-primary-container rounded-2xl hover:shadow-md transition-all active:scale-95"
+              >
+                <Plus size={24} />
+              </button>
+              
+              <AnimatePresence>
+                {showAddMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute right-0 top-14 w-48 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden"
                   >
-                    <FolderPlus size={18} />
-                    <span className="font-medium">Add Folder</span>
-                  </button>
-                  <button 
-                    onClick={() => handleAddMusic('files')}
-                    className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors border-t border-m3-outline/10"
-                  >
-                    <FilePlus size={18} />
-                    <span className="font-medium">Add Songs</span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <button 
+                      onClick={() => handleAddMusic('folder')}
+                      className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                    >
+                      <FolderPlus size={18} />
+                      <span className="font-medium">Add Folder</span>
+                    </button>
+                    <button 
+                      onClick={() => handleAddMusic('files')}
+                      className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors border-t border-m3-outline/10"
+                    >
+                      <FilePlus size={18} />
+                      <span className="font-medium">Add Songs</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
         
@@ -128,13 +153,126 @@ export const LibraryView: React.FC = () => {
                   {formatDuration(song.duration)}
                 </div>
                 
-                <button className="ml-2 p-2 rounded-full hover:bg-m3-on-surface-variant/10 text-m3-on-surface-variant transition-colors">
-                  <MoreVertical size={20} />
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(song.id);
+                  }}
+                  className={cn(
+                    "ml-2 p-2 rounded-full hover:bg-m3-on-surface-variant/10 transition-colors",
+                    song.isFavorite ? "text-m3-primary" : "text-m3-on-surface-variant"
+                  )}
+                >
+                  <Heart size={20} className={song.isFavorite ? "fill-current" : ""} />
                 </button>
+                
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSongId(selectedSongId === song.id ? null : song.id);
+                    }}
+                    className="p-2 rounded-full hover:bg-m3-on-surface-variant/10 text-m3-on-surface-variant transition-colors"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {selectedSongId === song.id && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, x: -20 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, x: -20 }}
+                        className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[140px] overflow-hidden"
+                      >
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSongs([song.id]);
+                            setSelectedSongId(null);
+                          }}
+                          className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                          <span className="text-sm font-medium">Delete</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Duplicate Scanner Modal */}
+        <AnimatePresence>
+          {showDuplicates && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4"
+            >
+              <motion.div 
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                className="w-full max-w-lg bg-m3-surface rounded-t-[32px] sm:rounded-[32px] overflow-hidden flex flex-col max-h-[85vh] shadow-[0_-8px_32px_rgba(0,0,0,0.15)]"
+              >
+                <div className="p-6 border-b border-m3-outline/10 flex justify-between items-center bg-m3-secondary-container/10">
+                  <div>
+                    <h2 className="text-xl font-bold text-m3-on-surface">Duplicate Scanner</h2>
+                    <p className="text-sm text-m3-on-surface-variant">{duplicateGroups.length} Potential duplicates found</p>
+                  </div>
+                  <button onClick={() => setShowDuplicates(false)} className="p-2 rounded-full hover:bg-m3-surface-variant/50"><X size={24} /></button>
+                </div>
+                
+                <div className="flex-1 overflow-auto p-4 space-y-6">
+                  {duplicateGroups.map((group, idx) => (
+                    <div key={idx} className="bg-m3-surface-variant/10 rounded-3xl p-4 border border-m3-outline/5 space-y-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-1 bg-m3-primary/30 flex-1 rounded-full" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-m3-primary opacity-60">Group {idx + 1}</span>
+                        <div className="h-1 bg-m3-primary/30 flex-1 rounded-full" />
+                      </div>
+                      
+                      {group.map(song => (
+                        <div key={song.id} className="flex items-center justify-between p-2 rounded-2xl hover:bg-m3-surface-variant/20 transition-colors">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="h-10 w-10 rounded-lg overflow-hidden shrink-0 bg-m3-surface-variant flex items-center justify-center">
+                              {song.coverUrl ? <img src={song.coverUrl} className="w-full h-full object-cover" /> : <Music size={18} />}
+                            </div>
+                            <div className="overflow-hidden">
+                              <p className="text-sm font-bold truncate">{song.title}</p>
+                              <p className="text-[10px] text-m3-on-surface-variant truncate uppercase tracking-tighter">{(song.size / (1024 * 1024)).toFixed(1)} MB • {song.format}</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => removeSongs([song.id])}
+                            className="p-2.5 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 active:scale-90 transition-all"
+                            title="Delete this copy"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-6 bg-m3-surface-variant/5">
+                  <button 
+                    onClick={() => setShowDuplicates(false)}
+                    className="w-full py-4 bg-m3-primary text-m3-on-primary rounded-full font-bold shadow-lg active:scale-[0.98] transition-all"
+                  >
+                    Done
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {activeSegment === 'albums' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

@@ -19,6 +19,7 @@ export interface Song {
   file: File;
   coverUrl?: string;
   dominantColor?: string;
+  isFavorite?: boolean;
 }
 
 export interface Album {

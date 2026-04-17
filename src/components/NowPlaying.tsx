@@ -5,7 +5,7 @@ import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { activeSong, playbackState, togglePlay, nextSong, prevSong, repeatMode, setRepeatMode, isShuffle, toggleShuffle } = useMusicStore();
+  const { activeSong, playbackState, togglePlay, nextSong, prevSong, repeatMode, setRepeatMode, isShuffle, toggleShuffle, toggleFavorite } = useMusicStore();
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
@@ -91,8 +91,11 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                     {activeSong.artist}
                   </motion.p>
                 </div>
-                <button className="p-3 rounded-full hover:bg-white/10 transition-colors">
-                  <Heart size={32} />
+                <button 
+                  onClick={() => toggleFavorite(activeSong.id)}
+                  className="p-3 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <Heart size={32} className={activeSong.isFavorite ? "fill-current" : ""} />
                 </button>
               </div>
             </div>

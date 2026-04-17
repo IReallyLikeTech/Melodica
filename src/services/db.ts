@@ -25,6 +25,16 @@ export async function saveSongs(songs: Song[]) {
   await tx.done;
 }
 
+export async function updateSong(song: Song) {
+  const db = await initDB();
+  return db.put(STORE_NAME, song);
+}
+
+export async function deleteSongFromDB(id: string) {
+  const db = await initDB();
+  return db.delete(STORE_NAME, id);
+}
+
 export async function getAllSongs(): Promise<Partial<Song>[]> {
   const db = await initDB();
   return db.getAll(STORE_NAME);

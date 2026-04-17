@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Song, Album, Artist, PlaybackState, RepeatMode } from './types';
-import { saveSongs, getAllSongs } from './services/db';
+import { saveSongs, getAllSongs, deleteSongFromDB, updateSong } from './services/db';
 
 interface MusicStore {
   songs: Song[];
@@ -20,6 +20,8 @@ interface MusicStore {
   // Actions
   loadSongs: () => Promise<void>;
   setSongs: (songs: Song[], persist?: boolean) => void;
+  removeSongs: (ids: string[]) => void;
+  toggleFavorite: (songId: string) => void;
   playSong: (song: Song, fromList?: Song[]) => void;
   togglePlay: () => void;
   nextSong: () => void;
@@ -130,14 +132,46 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       }
     });
 
-    set({ 
-      songs, 
-      albums: Array.from(albumMap.values()), 
-      artists: Array.from(artistMap.values()) 
-    });
-  },
+      set({ 
+        songs, 
+        albums: Array.from(albumMap.values()), 
+        artists: Array.from(artistMap.values()) 
+      });
+    },
 
-  playSong: (song, fromList) => {
+    removeSongs: async (ids) => {
+      const { songs, activeSong } = get();
+      const updatedSongs = songs.filter(s => !ids.includes(s.id));
+      
+      // Remove from DB
+      await Promise.all(ids.map(id => deleteSongFromDB(id)));
+      
+      // Update UI
+      get().setSongs(updatedSongs, false);
+
+      // If active song is deleted, stop playback
+      if (activeSong && ids.includes(activeSong.id)) {
+        set({ activeSong: null, playbackState: 'idle' });
+      }
+    },
+
+    toggleFavorite: async (songId) => {
+      const { songs } = get();
+      const songIndex = songs.findIndex(s => s.id === songId);
+      if (songIndex === -1) return;
+
+      const updatedSong = { ...songs[songIndex], isFavorite: !songs[songIndex].isFavorite };
+      const updatedSongs = [...songs];
+      updatedSongs[songIndex] = updatedSong;
+
+      // Update DB
+      await updateSong(updatedSong);
+
+      // Update UI (force refresh albums/artists)
+      get().setSongs(updatedSongs, false);
+    },
+
+    playSong: (song, fromList) => {
     const list = fromList || get().songs;
     const index = list.findIndex(s => s.id === song.id);
     set({

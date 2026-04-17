@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search as SearchIcon, X, Music, History, Play, Disc, User } from 'lucide-react';
+import { Search as SearchIcon, X, Music, History, Play, Disc, User, Heart, Trash2, MoreVertical } from 'lucide-react';
 import { useMusicStore } from '../store';
 import { formatDuration, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const SearchView: React.FC = () => {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const { songs, albums, artists, playSong, recentSearches, addRecentSearch, clearRecentSearches } = useMusicStore();
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const { songs, albums, artists, playSong, recentSearches, addRecentSearch, clearRecentSearches, toggleFavorite, removeSongs } = useMusicStore();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -175,11 +176,60 @@ export const SearchView: React.FC = () => {
                         )}
                         <Play size={16} className="absolute text-white opacity-0 group-hover:opacity-100 fill-white transition-opacity" />
                       </div>
-                      <div className="ml-4 flex-1 overflow-hidden">
-                        <h4 className="font-semibold text-m3-on-surface truncate">{song.title}</h4>
-                        <p className="text-sm text-m3-on-surface-variant truncate">{song.artist}</p>
+                      <div className="ml-4 flex-1 overflow-hidden font-medium">
+                        <h4 className="font-semibold text-m3-on-surface truncate leading-tight">{song.title}</h4>
+                        <p className="text-sm text-m3-on-surface-variant truncate leading-tight">{song.artist}</p>
                       </div>
-                      <div className="text-xs text-m3-on-surface-variant font-bold">{formatDuration(song.duration)}</div>
+                      
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(song.id);
+                          }}
+                          className={cn(
+                            "p-2 rounded-full hover:bg-m3-on-surface-variant/10 transition-colors",
+                            song.isFavorite ? "text-m3-primary" : "text-m3-on-surface-variant"
+                          )}
+                        >
+                          <Heart size={18} className={song.isFavorite ? "fill-current" : ""} />
+                        </button>
+                        
+                        <div className="relative">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSongId(selectedSongId === song.id ? null : song.id);
+                            }}
+                            className="p-2 rounded-full hover:bg-m3-on-surface-variant/10 text-m3-on-surface-variant transition-colors"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+                          
+                          <AnimatePresence>
+                            {selectedSongId === song.id && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, x: -10 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, x: -10 }}
+                                className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[120px] overflow-hidden"
+                              >
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeSongs([song.id]);
+                                    setSelectedSongId(null);
+                                  }}
+                                  className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                  <span className="text-xs font-bold">Delete</span>
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
