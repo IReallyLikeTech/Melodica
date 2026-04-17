@@ -6,12 +6,7 @@ export async function extractMetadata(file: File): Promise<Partial<Song>> {
     const metadata = await mm.parseBlob(file);
     const { common, format } = metadata;
 
-    let coverUrl: string | undefined;
-    const cover = mm.selectCover(common.picture);
-    if (cover) {
-      const blob = new Blob([cover.data], { type: cover.format });
-      coverUrl = URL.createObjectURL(blob);
-    }
+    const coverUrl = await extractCover(file);
 
     return {
       title: common.title || file.name.replace(/\.[^/.]+$/, ""),
@@ -40,6 +35,20 @@ export async function extractMetadata(file: File): Promise<Partial<Song>> {
       size: file.size,
     };
   }
+}
+
+export async function extractCover(file: File): Promise<string | undefined> {
+  try {
+    const metadata = await mm.parseBlob(file);
+    const cover = mm.selectCover(metadata.common.picture);
+    if (cover) {
+      const blob = new Blob([cover.data], { type: cover.format });
+      return URL.createObjectURL(blob);
+    }
+  } catch (err) {
+    console.warn('Failed to extract cover:', err);
+  }
+  return undefined;
 }
 
 export async function getDominantColor(imageUrl: string): Promise<string> {

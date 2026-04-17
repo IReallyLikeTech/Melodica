@@ -53,7 +53,35 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     try {
       const persistedSongs = await getAllSongs() as Song[];
       if (persistedSongs && persistedSongs.length > 0) {
-        get().setSongs(persistedSongs, false); // Don't re-save to DB when loading
+        // First batch set songs so UI is populated with metadata immediately
+        get().setSongs(persistedSongs, false);
+
+        // Then, in the background, regenerate cover URLs as they are session-bound
+        // We do this in smaller chunks to avoid blocking the main thread
+        const { extractCover } = await import('./services/metadata');
+        
+        const updatedSongs = [...persistedSongs];
+        let hasChanges = false;
+
+        for (let i = 0; i < updatedSongs.length; i++) {
+          const song = updatedSongs[i];
+          if (song.file) {
+            const newCoverUrl = await extractCover(song.file);
+            if (newCoverUrl) {
+              updatedSongs[i] = { ...song, coverUrl: newCoverUrl };
+              hasChanges = true;
+            }
+          }
+          
+          // Periodically update the store so covers appear as they are processed
+          if (i % 20 === 0 && hasChanges) {
+            get().setSongs([...updatedSongs], false);
+          }
+        }
+
+        if (hasChanges) {
+          get().setSongs(updatedSongs, false);
+        }
       }
     } catch (error) {
       console.error('Failed to load songs from DB:', error);
