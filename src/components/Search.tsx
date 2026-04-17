@@ -192,7 +192,10 @@ export const SearchView: React.FC = () => {
                             song.isFavorite ? "text-m3-primary" : "text-m3-on-surface-variant"
                           )}
                         >
-                          <Heart size={18} className={song.isFavorite ? "fill-current" : ""} />
+                          <Heart 
+                            size={18} 
+                            fill={song.isFavorite ? "currentColor" : "none"}
+                          />
                         </button>
                         
                         <div className="relative">
@@ -223,7 +226,7 @@ export const SearchView: React.FC = () => {
                                   className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
                                 >
                                   <Trash2 size={16} />
-                                  <span className="text-xs font-bold">Delete</span>
+                                  <span className="text-xs font-bold">Remove from Library</span>
                                 </button>
                               </motion.div>
                             )}

@@ -163,7 +163,10 @@ export const LibraryView: React.FC = () => {
                     song.isFavorite ? "text-m3-primary" : "text-m3-on-surface-variant"
                   )}
                 >
-                  <Heart size={20} className={song.isFavorite ? "fill-current" : ""} />
+                  <Heart 
+                    size={20} 
+                    fill={song.isFavorite ? "currentColor" : "none"} 
+                  />
                 </button>
                 
                 <div className="relative">
@@ -194,7 +197,7 @@ export const LibraryView: React.FC = () => {
                           className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors"
                         >
                           <Trash2 size={16} />
-                          <span className="text-sm font-medium">Delete</span>
+                          <span className="text-sm font-medium">Remove from Library</span>
                         </button>
                       </motion.div>
                     )}
@@ -251,7 +254,7 @@ export const LibraryView: React.FC = () => {
                           <button 
                             onClick={() => removeSongs([song.id])}
                             className="p-2.5 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 active:scale-90 transition-all"
-                            title="Delete this copy"
+                            title="Remove from Library"
                           >
                             <Trash2 size={16} />
                           </button>

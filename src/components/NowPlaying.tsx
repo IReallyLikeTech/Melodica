@@ -95,7 +95,11 @@ export const NowPlaying: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                   onClick={() => toggleFavorite(activeSong.id)}
                   className="p-3 rounded-full hover:bg-white/10 transition-colors"
                 >
-                  <Heart size={32} className={activeSong.isFavorite ? "fill-current" : ""} />
+                  <Heart 
+                    size={32} 
+                    fill={activeSong.isFavorite ? "currentColor" : "none"} 
+                    className={cn(activeSong.isFavorite ? "text-white" : "opacity-80")}
+                  />
                 </button>
               </div>
             </div>

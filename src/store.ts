@@ -156,7 +156,7 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
     },
 
     toggleFavorite: async (songId) => {
-      const { songs } = get();
+      const { songs, activeSong, queue } = get();
       const songIndex = songs.findIndex(s => s.id === songId);
       if (songIndex === -1) return;
 
@@ -167,7 +167,20 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       // Update DB
       await updateSong(updatedSong);
 
-      // Update UI (force refresh albums/artists)
+      // Update Queue if song is in it
+      const updatedQueue = queue.map(s => s.id === songId ? updatedSong : s);
+      
+      // Update Active Song if it matches
+      const updatedActiveSong = activeSong?.id === songId ? updatedSong : activeSong;
+
+      // Update UI (force refresh)
+      set({ 
+        songs: updatedSongs,
+        queue: updatedQueue,
+        activeSong: updatedActiveSong
+      });
+
+      // Recalculate albums/artists
       get().setSongs(updatedSongs, false);
     },
 
