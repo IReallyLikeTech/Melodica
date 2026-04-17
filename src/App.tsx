@@ -11,6 +11,7 @@ import { NowPlaying } from './components/NowPlaying';
 import { HomeView } from './components/Home';
 import { LibraryView } from './components/Library';
 import { SearchView } from './components/Search';
+import { DetailsView } from './components/DetailsView';
 import { Sidebar } from './components/Sidebar';
 import { AudioPlayer } from './components/AudioPlayer';
 import { useMusicStore } from './store';
@@ -19,10 +20,9 @@ import { Music, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, Heart } fro
 import { formatDuration } from './lib/utils';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const { songs, activeSong, playbackState, togglePlay, nextSong, prevSong, loadSongs, isLoading } = useMusicStore();
+  const { songs, activeSong, playbackState, togglePlay, nextSong, prevSong, loadSongs, isLoading, currentView, navigateTo } = useMusicStore();
 
   useEffect(() => {
     loadSongs();
@@ -53,34 +53,48 @@ export default function App() {
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <Sidebar activeTab={currentView.type} onTabChange={(type: any) => navigateTo({ type })} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait">
-            {activeTab === 'home' && (
+            {currentView.type === 'home' && (
               <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
                 <HomeView />
               </motion.div>
             )}
-            {activeTab === 'library' && (
+            {currentView.type === 'library' && (
               <motion.div key="library" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
                 <LibraryView />
               </motion.div>
             )}
-            {activeTab === 'search' && (
+            {currentView.type === 'search' && (
               <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0">
                 <SearchView />
+              </motion.div>
+            )}
+            {(currentView.type === 'album' || currentView.type === 'artist' || currentView.type === 'playlist') && (
+              <motion.div 
+                key={`${currentView.type}-${(currentView as any).albumId || (currentView as any).artistName || (currentView as any).playlistId}`} 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: -20 }} 
+                className="absolute inset-0"
+              >
+                <DetailsView 
+                  type={currentView.type} 
+                  id={(currentView as any).albumId || (currentView as any).artistName || (currentView as any).playlistId} 
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </main>
 
         {/* Mobile Mini Player */}
-        <div className="lg:hidden">
+        <div className="lg:hidden text-m3-on-surface">
           {activeSong && <MiniPlayer onClick={() => setIsNowPlayingOpen(true)} />}
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNav activeTab={currentView.type} onTabChange={(type: any) => navigateTo({ type })} />
         </div>
 
         {/* Desktop Bottom Player Bar */}

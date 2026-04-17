@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Song, Album, Artist, Playlist, PlaybackState, RepeatMode, PlayerTheme } from './types';
+import { Song, Album, Artist, Playlist, PlaybackState, RepeatMode, PlayerTheme, ViewState } from './types';
 import { saveSongs, getAllSongs, deleteSongFromDB, updateSong, savePlaylist, deletePlaylistFromDB, getAllPlaylists } from './services/db';
 import { generateThemeFromColor } from './lib/colorUtils';
 
@@ -20,6 +20,12 @@ interface MusicStore {
   recentSearches: string[];
   isLoading: boolean;
   
+  // Navigation
+  currentView: ViewState;
+  viewHistory: ViewState[];
+  navigateTo: (view: ViewState) => void;
+  goBack: () => void;
+  
   // Actions
   loadSongs: () => Promise<void>;
   setSongs: (songs: Song[], persist?: boolean) => void;
@@ -34,6 +40,9 @@ interface MusicStore {
   renamePlaylist: (id: string, name: string) => void;
 
   playSong: (song: Song, fromList?: Song[]) => void;
+  playAlbum: (album: Album) => void;
+  playArtist: (artist: Artist) => void;
+  playPlaylist: (playlist: Playlist) => void;
   togglePlay: () => void;
   nextSong: () => void;
   prevSong: () => void;
@@ -76,6 +85,33 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
   volume: 0.7,
   recentSearches: [],
   isLoading: true,
+  
+  currentView: { type: 'home' },
+  viewHistory: [],
+
+  navigateTo: (view) => {
+    const { currentView, viewHistory } = get();
+    // Don't push same view twice
+    if (JSON.stringify(currentView) === JSON.stringify(view)) return;
+    
+    set({ 
+      currentView: view,
+      viewHistory: [...viewHistory, currentView]
+    });
+  },
+
+  goBack: () => {
+    const { viewHistory } = get();
+    if (viewHistory.length === 0) return;
+    
+    const newHistory = [...viewHistory];
+    const prevView = newHistory.pop()!;
+    
+    set({ 
+      currentView: prevView,
+      viewHistory: newHistory
+    });
+  },
 
   loadSongs: async () => {
     set({ isLoading: true });
@@ -301,6 +337,27 @@ export const useMusicStore = create<MusicStore>((set, get) => ({
       currentIndex: index,
       playbackState: 'playing'
     });
+  },
+
+  playAlbum: (album) => {
+    const albumSongs = get().songs.filter(s => album.songIds.includes(s.id));
+    if (albumSongs.length > 0) {
+      get().playSong(albumSongs[0], albumSongs);
+    }
+  },
+
+  playArtist: (artist) => {
+    const artistSongs = get().songs.filter(s => artist.songIds.includes(s.id));
+    if (artistSongs.length > 0) {
+      get().playSong(artistSongs[0], artistSongs);
+    }
+  },
+
+  playPlaylist: (playlist) => {
+    const playlistSongs = get().songs.filter(s => playlist.songIds.includes(s.id));
+    if (playlistSongs.length > 0) {
+      get().playSong(playlistSongs[0], playlistSongs);
+    }
   },
 
   togglePlay: () => {

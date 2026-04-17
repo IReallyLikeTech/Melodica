@@ -4,7 +4,7 @@ import { Clock, PlayCircle, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const HomeView: React.FC = () => {
-  const { songs, albums, playSong } = useMusicStore();
+  const { songs, albums, playSong, navigateTo } = useMusicStore();
   const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
 
   const recentlyPlayed = songs.slice(0, 6); // Mocked for now
@@ -46,20 +46,27 @@ export const HomeView: React.FC = () => {
           <PlayCircle size={20} className="text-m3-primary" />
           <h2 className="text-xl font-bold tracking-tight">Quick Picks</h2>
         </div>
-        <div className="flex overflow-x-auto gap-4 px-6 no-scrollbar pb-4">
+        <div className="flex overflow-x-auto gap-6 px-6 no-scrollbar pb-6">
           {quickPicks.map((song) => (
             <motion.div 
               key={song.id}
+              whileHover={{ y: -4 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => playSong(song, quickPicks)}
-              className="flex-none w-40 space-y-2 cursor-pointer"
+              onClick={() => navigateTo({ type: 'album', albumId: `${song.album}-${song.artist}` })}
+              className="flex-none w-48 space-y-3 cursor-pointer group"
             >
-              <div className="aspect-square w-full rounded-3xl overflow-hidden bg-m3-surface-variant shadow-md">
-                {song.coverUrl && <img src={song.coverUrl} className="h-full w-full object-cover" />}
+              <div className="aspect-square w-full rounded-[40px] overflow-hidden bg-m3-surface-variant shadow-lg group-hover:shadow-2xl transition-all duration-300">
+                {song.coverUrl ? (
+                  <img src={song.coverUrl} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center bg-m3-surface-variant/50">
+                    <Disc size={48} className="text-m3-on-surface-variant/20" />
+                  </div>
+                )}
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-m3-on-surface truncate">{song.title}</h4>
-                <p className="text-xs text-m3-on-surface-variant truncate">{song.artist}</p>
+              <div className="px-1">
+                <h4 className="text-sm font-bold text-m3-on-surface truncate line-clamp-1">{song.album}</h4>
+                <p className="text-xs text-m3-on-surface-variant truncate font-medium opacity-60">{song.artist}</p>
               </div>
             </motion.div>
           ))}

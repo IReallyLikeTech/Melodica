@@ -50,6 +50,14 @@ export type PlaybackState = 'idle' | 'playing' | 'paused' | 'buffering';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
+export type ViewState = 
+  | { type: 'home' }
+  | { type: 'library' }
+  | { type: 'search' }
+  | { type: 'album'; albumId: string }
+  | { type: 'artist'; artistName: string }
+  | { type: 'playlist'; playlistId: string };
+
 export interface PlayerTheme {
   primary: string;
   onPrimary: string;

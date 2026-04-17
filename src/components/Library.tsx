@@ -19,7 +19,7 @@ export const LibraryView: React.FC = () => {
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   
-  const { songs, albums, artists, playlists, playSong, setSongs, removeSongs, toggleFavorite, createPlaylist, deletePlaylist, renamePlaylist, removeSongFromPlaylist } = useMusicStore();
+  const { songs, albums, artists, playlists, playSong, setSongs, removeSongs, toggleFavorite, createPlaylist, deletePlaylist, renamePlaylist, removeSongFromPlaylist, navigateTo } = useMusicStore();
 
   const [songSort, setSongSort] = useState<'title' | 'artist' | 'album' | 'dateAdded'>('dateAdded');
   const [albumSort, setAlbumSort] = useState<'name' | 'artist' | 'year'>('name');
@@ -97,8 +97,8 @@ export const LibraryView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-m3-surface relative">
-      <div className="sticky top-0 z-20 bg-m3-surface/80 backdrop-blur-md px-4 py-4 space-y-4">
+    <div className="flex flex-col h-full bg-m3-surface relative overflow-hidden">
+      <div className="sticky top-0 z-20 bg-m3-surface/80 backdrop-blur-md px-6 py-8 space-y-6">
         {playlistToAddTo && (
           <PlaylistMenu 
             songId={playlistToAddTo} 
@@ -106,15 +106,15 @@ export const LibraryView: React.FC = () => {
           />
         )}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-m3-on-surface">Your Library</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-4xl font-bold text-m3-on-surface tracking-tight">Library</h1>
+          <div className="flex items-center gap-3">
             {duplicateGroups.length > 0 && (
               <button 
                 onClick={() => setShowDuplicates(true)}
-                className="p-3 bg-m3-surface-variant/30 text-m3-primary rounded-2xl flex items-center gap-2 transition-all active:scale-95"
+                className="p-3 bg-m3-primary/10 text-m3-primary rounded-2xl flex items-center gap-2 transition-all active:scale-95"
               >
-                <Copy size={18} />
-                <span className="text-xs font-bold uppercase tracking-wider">{duplicateGroups.length} Duplicates</span>
+                <Copy size={20} />
+                <span className="text-xs font-bold uppercase tracking-widest">{duplicateGroups.length} Duplicates</span>
               </button>
             )}
             
@@ -123,8 +123,8 @@ export const LibraryView: React.FC = () => {
               <button 
                 onClick={() => setShowSortMenu(!showSortMenu)}
                 className={cn(
-                  "p-3 rounded-2xl transition-all active:scale-95",
-                  showSortMenu ? "bg-m3-secondary-container text-m3-on-secondary-container" : "bg-m3-surface-variant/30 text-m3-on-surface-variant"
+                  "p-4 rounded-[24px] transition-all active:scale-95",
+                  showSortMenu ? "bg-m3-secondary-container text-m3-on-secondary-container shadow-md" : "bg-m3-surface-variant/40 text-m3-on-surface-variant"
                 )}
               >
                 <SortAsc size={24} />
@@ -136,12 +136,12 @@ export const LibraryView: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                    className="absolute right-0 top-14 w-56 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden py-2"
+                    className="absolute right-0 top-16 w-64 bg-m3-surface border border-m3-outline/20 rounded-[32px] shadow-2xl z-50 overflow-hidden py-3"
                   >
-                    <div className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-m3-on-surface-variant/60">Sort by</div>
+                    <div className="px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-m3-on-surface-variant/60">Sort by</div>
                     
                     {activeSegment === 'songs' && [
-                      { id: 'dateAdded', label: 'Date Added' },
+                      { id: 'dateAdded', label: 'Recently Added' },
                       { id: 'title', label: 'Title' },
                       { id: 'artist', label: 'Artist' },
                       { id: 'album', label: 'Album' },
@@ -149,38 +149,38 @@ export const LibraryView: React.FC = () => {
                       <button 
                         key={opt.id}
                         onClick={() => { setSongSort(opt.id as any); setShowSortMenu(false); }}
-                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                        className="flex items-center justify-between w-full px-6 py-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
                       >
-                        <span className={cn("font-medium", songSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        <span className={cn("font-bold text-sm", songSort === opt.id ? "text-m3-primary" : "text-m3-on-surface")}>{opt.label}</span>
                         {songSort === opt.id && <Check size={18} className="text-m3-primary" />}
                       </button>
                     ))}
-                    
+
                     {activeSegment === 'albums' && [
-                      { id: 'name', label: 'Name' },
-                      { id: 'artist', label: 'Artist' },
-                      { id: 'year', label: 'Year' },
+                      { id: 'name', label: 'Album Title' },
+                      { id: 'artist', label: 'Artist Name' },
+                      { id: 'year', label: 'Release Year' },
                     ].map(opt => (
                       <button 
                         key={opt.id}
                         onClick={() => { setAlbumSort(opt.id as any); setShowSortMenu(false); }}
-                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                        className="flex items-center justify-between w-full px-6 py-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
                       >
-                        <span className={cn("font-medium", albumSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        <span className={cn("font-bold text-sm", albumSort === opt.id ? "text-m3-primary" : "text-m3-on-surface")}>{opt.label}</span>
                         {albumSort === opt.id && <Check size={18} className="text-m3-primary" />}
                       </button>
                     ))}
-                    
+
                     {activeSegment === 'artists' && [
-                      { id: 'name', label: 'Name' },
-                      { id: 'songs', label: 'Song Count' },
+                      { id: 'name', label: 'Artist Name' },
+                      { id: 'songs', label: 'Track Count' },
                     ].map(opt => (
                       <button 
                         key={opt.id}
                         onClick={() => { setArtistSort(opt.id as any); setShowSortMenu(false); }}
-                        className="flex items-center justify-between w-full px-5 py-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                        className="flex items-center justify-between w-full px-6 py-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
                       >
-                        <span className={cn("font-medium", artistSort === opt.id && "text-m3-primary")}>{opt.label}</span>
+                        <span className={cn("font-bold text-sm", artistSort === opt.id ? "text-m3-primary" : "text-m3-on-surface")}>{opt.label}</span>
                         {artistSort === opt.id && <Check size={18} className="text-m3-primary" />}
                       </button>
                     ))}
@@ -192,7 +192,7 @@ export const LibraryView: React.FC = () => {
             <div className="relative">
               <button 
                 onClick={() => setShowAddMenu(!showAddMenu)}
-                className="p-3 bg-m3-primary-container text-m3-on-primary-container rounded-2xl hover:shadow-md transition-all active:scale-95"
+                className="p-4 bg-m3-primary text-m3-on-primary rounded-[24px] shadow-lg active:scale-95 transition-all"
               >
                 <Plus size={24} />
               </button>
@@ -203,21 +203,21 @@ export const LibraryView: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                    className="absolute right-0 top-14 w-48 bg-m3-surface border border-m3-outline/20 rounded-3xl shadow-xl z-50 overflow-hidden"
+                    className="absolute right-0 top-16 w-64 bg-m3-surface border border-m3-outline/20 rounded-[32px] shadow-2xl z-50 overflow-hidden py-3"
                   >
                     <button 
                       onClick={() => handleAddMusic('folder')}
-                      className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                      className="flex items-center gap-4 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
                     >
-                      <FolderPlus size={18} />
-                      <span className="font-medium">Add Folder</span>
+                      <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><FolderPlus size={20} /></div>
+                      <span className="font-bold text-sm">Add Folder</span>
                     </button>
                     <button 
                       onClick={() => handleAddMusic('files')}
-                      className="flex items-center gap-3 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors border-t border-m3-outline/10"
+                      className="flex items-center gap-4 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors border-t border-m3-outline/10"
                     >
-                      <FilePlus size={18} />
-                      <span className="font-medium">Add Songs</span>
+                      <div className="p-2 bg-green-500/10 text-green-500 rounded-lg"><FilePlus size={20} /></div>
+                      <span className="font-bold text-sm">Add Songs</span>
                     </button>
                   </motion.div>
                 )}
@@ -226,26 +226,26 @@ export const LibraryView: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex p-1 bg-m3-surface-variant/30 rounded-full w-full max-w-md">
+        <div className="flex p-1.5 bg-m3-surface-variant/20 rounded-[28px] w-full max-w-lg">
           {segments.map((s) => (
             <button
               key={s.id}
               onClick={() => setActiveSegment(s.id)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-medium transition-all duration-300",
+                "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-black transition-all duration-300",
                 activeSegment === s.id 
-                  ? "bg-m3-secondary-container text-m3-on-secondary-container shadow-sm" 
+                  ? "bg-m3-secondary-container text-m3-on-secondary-container shadow-md" 
                   : "text-m3-on-surface-variant hover:bg-m3-surface-variant/50"
               )}
             >
-              <s.icon size={18} />
+              <s.icon size={20} />
               {s.label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 pb-32 pt-2 scroll-smooth no-scrollbar">
+      <div className="flex-1 overflow-auto px-6 pb-32 pt-4 scroll-smooth no-scrollbar">
         {isAdding && (
           <div className="flex items-center justify-center p-8 text-m3-primary gap-3">
             <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -416,25 +416,32 @@ export const LibraryView: React.FC = () => {
         </AnimatePresence>
 
         {activeSegment === 'albums' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-12 pb-12">
             {sortedAlbums.map((album) => (
               <motion.div 
-                whileHover={{ y: -4 }}
+                whileHover={{ y: -8 }}
+                whileTap={{ scale: 0.98 }}
                 key={`${album.name}-${album.artist}`}
-                className="group space-y-3 cursor-pointer"
+                onClick={() => navigateTo({ type: 'album', albumId: `${album.name}-${album.artist}` })}
+                className="group space-y-4 cursor-pointer"
               >
-                <div className="aspect-square w-full rounded-3xl overflow-hidden bg-m3-surface-variant shadow-md">
+                <div className="aspect-square w-full rounded-[48px] overflow-hidden bg-m3-surface-variant shadow-lg group-hover:shadow-2xl transition-all duration-500 relative">
                   {album.coverUrl ? (
-                    <img src={album.coverUrl} alt={album.name} className="h-full w-full object-cover" />
+                    <img src={album.coverUrl} alt={album.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 duration-700" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center">
-                      <Disc className="text-m3-on-surface-variant" size={48} />
+                      <Disc className="text-m3-on-surface-variant opacity-20" size={64} />
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100">
+                    <div className="bg-m3-primary text-m3-on-primary p-5 rounded-full shadow-2xl">
+                      <Play size={28} fill="currentColor" />
+                    </div>
+                  </div>
                 </div>
-                <div className="px-1">
-                  <h4 className="font-bold text-m3-on-surface truncate leading-tight">{album.name}</h4>
-                  <p className="text-sm text-m3-on-surface-variant truncate">{album.artist}</p>
+                <div className="px-1 text-center">
+                  <h4 className="font-bold text-m3-on-surface truncate leading-tight text-lg">{album.name}</h4>
+                  <p className="text-sm text-m3-on-surface-variant truncate font-medium opacity-80">{album.artist}</p>
                 </div>
               </motion.div>
             ))}
@@ -442,26 +449,33 @@ export const LibraryView: React.FC = () => {
         )}
 
         {activeSegment === 'artists' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-12 pb-12">
             {sortedArtists.map((artist) => (
               <motion.div 
-                whileHover={{ y: -4 }}
+                whileHover={{ y: -8 }}
+                whileTap={{ scale: 0.98 }}
                 key={artist.name}
-                className="group flex flex-col items-center text-center space-y-3 cursor-pointer"
+                onClick={() => navigateTo({ type: 'artist', artistName: artist.name })}
+                className="group flex flex-col items-center text-center space-y-4 cursor-pointer"
               >
-                <div className="aspect-square w-full rounded-full overflow-hidden bg-m3-surface-variant shadow-md border-4 border-m3-surface">
+                <div className="aspect-square w-full rounded-full overflow-hidden bg-m3-surface-variant shadow-lg border-8 border-m3-surface group-hover:shadow-2xl transition-all duration-500 relative">
                   {artist.coverUrl ? (
-                    <img src={artist.coverUrl} alt={artist.name} className="h-full w-full object-cover" />
+                    <img src={artist.coverUrl} alt={artist.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 duration-700" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center">
-                      <User className="text-m3-on-surface-variant" size={48} />
+                      <User className="text-m3-on-surface-variant opacity-20" size={64} />
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100">
+                    <div className="bg-m3-primary text-m3-on-primary p-5 rounded-full shadow-2xl">
+                      <Play size={28} fill="currentColor" />
+                    </div>
+                  </div>
                 </div>
                 <div className="px-1">
-                  <h4 className="font-bold text-m3-on-surface truncate leading-tight">{artist.name}</h4>
-                  <p className="text-xs text-m3-on-surface-variant uppercase tracking-wider font-bold">
-                    {artist.songIds.length} Songs
+                  <h4 className="font-bold text-m3-on-surface truncate leading-tight text-lg">{artist.name}</h4>
+                  <p className="text-xs text-m3-on-surface-variant uppercase tracking-[0.2em] font-black opacity-60">
+                    {artist.songIds.length} Tracks
                   </p>
                 </div>
               </motion.div>
@@ -470,45 +484,49 @@ export const LibraryView: React.FC = () => {
         )}
 
         {activeSegment === 'playlists' && (
-          <div className="space-y-4">
-            <button 
+          <div className="space-y-10 pb-12">
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
               onClick={() => setIsCreatingPlaylist(true)}
-              className="flex items-center gap-4 w-full p-4 rounded-3xl bg-m3-primary/10 text-m3-primary border-2 border-dashed border-m3-primary/20 hover:bg-m3-primary/20 transition-all font-bold"
+              className="flex items-center justify-center gap-4 w-full p-10 rounded-[48px] bg-m3-primary/5 text-m3-primary border-4 border-dashed border-m3-primary/20 hover:bg-m3-primary/10 transition-all font-black text-xl group"
             >
-              <PlusCircle size={24} />
-              Create New Playlist
-            </button>
+              <div className="p-4 bg-m3-primary/10 rounded-full group-hover:bg-m3-primary group-hover:text-m3-on-primary transition-all">
+                <Plus size={32} />
+              </div>
+              New Playlist
+            </motion.button>
 
             <AnimatePresence>
               {isCreatingPlaylist && (
                 <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                  exit={{ opacity: 0, height: 0, scale: 0.95 }}
                   className="overflow-hidden"
                 >
-                  <form onSubmit={handleCreatePlaylist} className="p-4 bg-m3-surface-variant/30 rounded-3xl space-y-4">
+                  <form onSubmit={handleCreatePlaylist} className="p-10 bg-m3-surface-variant/20 rounded-[48px] border border-m3-outline/10 space-y-8">
+                    <h3 className="text-2xl font-bold tracking-tight">Create Playlist</h3>
                     <input 
                       autoFocus
                       type="text"
-                      placeholder="Enter playlist name"
+                      placeholder="What should we call it?"
                       value={newPlaylistName}
                       onChange={e => setNewPlaylistName(e.target.value)}
-                      className="w-full h-12 bg-m3-surface px-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-m3-primary text-m3-on-surface font-bold"
+                      className="w-full h-20 bg-m3-surface px-8 rounded-[28px] focus:outline-none focus:ring-4 focus:ring-m3-primary/20 text-m3-on-surface font-bold text-2xl border border-m3-outline/10"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex gap-4">
                       <button 
                         type="button"
                         onClick={() => setIsCreatingPlaylist(false)}
-                        className="flex-1 py-3 bg-m3-surface text-m3-on-surface font-bold rounded-2xl"
+                        className="flex-1 py-5 bg-m3-surface text-m3-on-surface font-bold rounded-[28px] hover:bg-m3-surface-variant/30 transition-all active:scale-95"
                       >
                         Cancel
                       </button>
                       <button 
                         type="submit"
-                        className="flex-1 py-3 bg-m3-primary text-m3-on-primary font-bold rounded-2xl"
+                        className="flex-1 py-5 bg-m3-primary text-m3-on-primary font-bold rounded-[28px] shadow-xl active:scale-95 transition-all"
                       >
-                        Save
+                        Create
                       </button>
                     </div>
                   </form>
@@ -516,19 +534,22 @@ export const LibraryView: React.FC = () => {
               )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {playlists.map((playlist) => (
-                <div 
+                <motion.div 
                   key={playlist.id}
-                  className="bg-m3-surface-variant/20 p-4 rounded-[32px] border border-m3-outline/5 hover:border-m3-outline/20 transition-all group relative"
+                  whileHover={{ y: -8 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigateTo({ type: 'playlist', playlistId: playlist.id })}
+                  className="bg-m3-surface-variant/15 p-8 rounded-[56px] border border-m3-outline/5 hover:border-m3-outline/20 hover:shadow-2xl transition-all group relative cursor-pointer"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-m3-secondary-container flex items-center justify-center text-m3-on-secondary-container shadow-sm">
-                      <ListMusic size={32} />
+                  <div className="flex items-center gap-6">
+                    <div className="h-24 w-24 rounded-[32px] bg-m3-secondary-container flex items-center justify-center text-m3-on-secondary-container shadow-inner group-hover:rotate-3 transition-transform">
+                      <ListMusic size={48} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-lg truncate">{playlist.name}</h4>
-                      <p className="text-sm opacity-60 font-medium">{playlist.songIds.length} tracks</p>
+                      <h4 className="font-bold text-2xl truncate tracking-tight">{playlist.name}</h4>
+                      <p className="text-sm opacity-60 font-black uppercase tracking-[0.2em]">{playlist.songIds.length} tracks</p>
                     </div>
                     
                     <div className="relative">
@@ -537,9 +558,9 @@ export const LibraryView: React.FC = () => {
                           e.stopPropagation();
                           setSelectedPlaylistId(selectedPlaylistId === playlist.id ? null : playlist.id);
                         }}
-                        className="p-2 rounded-full hover:bg-m3-surface-variant/50 text-m3-on-surface-variant transition-colors"
+                        className="p-4 rounded-full hover:bg-m3-surface-variant/50 text-m3-on-surface-variant transition-colors"
                       >
-                        <MoreVertical size={20} />
+                        <MoreVertical size={28} />
                       </button>
                       
                       <AnimatePresence>
@@ -548,7 +569,7 @@ export const LibraryView: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.95, x: -10 }}
                             animate={{ opacity: 1, scale: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.95, x: -10 }}
-                            className="absolute right-full top-0 mr-2 bg-m3-surface border border-m3-outline/20 rounded-2xl shadow-xl z-30 min-w-[140px] overflow-hidden"
+                            className="absolute right-full top-0 mr-4 bg-m3-surface border border-m3-outline/20 rounded-[32px] shadow-[0_16px_48px_rgba(0,0,0,0.2)] z-30 min-w-[200px] overflow-hidden p-3"
                           >
                             <button 
                               onClick={(e) => {
@@ -557,10 +578,10 @@ export const LibraryView: React.FC = () => {
                                 if (newName) renamePlaylist(playlist.id, newName);
                                 setSelectedPlaylistId(null);
                               }}
-                              className="flex items-center gap-3 w-full p-3 hover:bg-m3-surface-variant/30 text-m3-on-surface transition-colors"
+                              className="flex items-center gap-4 w-full p-4 hover:bg-m3-surface-variant/30 text-m3-on-surface rounded-2xl transition-colors"
                             >
-                              <Edit2 size={16} />
-                              <span className="text-sm font-medium">Rename</span>
+                              <Edit2 size={20} />
+                              <span className="text-base font-bold text-m3-on-surface">Rename</span>
                             </button>
                             <button 
                               onClick={(e) => {
@@ -568,10 +589,10 @@ export const LibraryView: React.FC = () => {
                                 if (confirm('Delete this playlist?')) deletePlaylist(playlist.id);
                                 setSelectedPlaylistId(null);
                               }}
-                              className="flex items-center gap-3 w-full p-3 hover:bg-red-500/10 text-red-500 transition-colors border-t border-m3-outline/10"
+                              className="flex items-center gap-4 w-full p-4 hover:bg-red-500/10 text-red-500 rounded-2xl transition-colors"
                             >
-                                <Trash2 size={16} />
-                                <span className="text-sm font-medium">Delete</span>
+                                <Trash2 size={20} />
+                                <span className="text-base font-bold">Delete</span>
                             </button>
                           </motion.div>
                         )}
@@ -579,40 +600,19 @@ export const LibraryView: React.FC = () => {
                     </div>
                   </div>
                   
-                  {playlist.songIds.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-m3-outline/5 space-y-1">
-                      {playlist.songIds.slice(0, 3).map(sid => {
-                        const song = songs.find(s => s.id === sid);
-                        if (!song) return null;
-                        return (
-                          <div key={sid} className="flex items-center gap-2 group/item">
-                            <span className="text-xs truncate flex-1 opacity-70 font-medium">{song.title}</span>
-                            <button 
-                              onClick={() => removeSongFromPlaylist(playlist.id, sid)}
-                              className="p-1 opacity-0 group-hover/item:opacity-100 hover:text-red-500 transition-all"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                      {playlist.songIds.length > 3 && (
-                        <p className="text-[10px] opacity-40 font-bold uppercase mt-1">+{playlist.songIds.length - 3} more</p>
-                      )}
-                      
-                      <button 
-                        onClick={() => {
-                          const playlistSongs = playlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[];
-                          if (playlistSongs.length > 0) playSong(playlistSongs[0], playlistSongs);
-                        }}
-                        className="mt-4 w-full py-2 bg-m3-primary text-m3-on-primary rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-sm active:scale-95 transition-all"
-                      >
-                        <Play size={16} fill="currentColor" />
-                        Play Playlist
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  <div className="mt-10 pt-8 border-t border-m3-outline/10">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playPlaylist(playlist);
+                      }}
+                      className="w-full py-5 bg-m3-primary text-m3-on-primary rounded-[32px] font-black flex items-center justify-center gap-4 shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest"
+                    >
+                      <Play size={24} fill="currentColor" />
+                      Listen Now
+                    </button>
+                  </div>
+                </motion.div>
               ))}
             </div>
           </div>
